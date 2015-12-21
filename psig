@@ -6,11 +6,15 @@
 #
 # Author: Erik Weathers
 
+from __future__ import print_function
 import argparse
 import collections
 import glob
 import re
 import sys
+
+def error(*objs):
+    print("ERROR: ", *objs, file=sys.stderr)
 
 # Signal names for signal numbers.
 #
@@ -151,10 +155,10 @@ def print_signal_info(args, pid, max_pid_length):
     output_fmt = "[%%0%ss] %%s: %%s" % max_pid_length
     for k,v in obtain_signal_info(pid).iteritems():
         if option_enabled(args, k):
-            print output_fmt % \
+            print(output_fmt % \
                 (pid,
                  OUTPUT_HEADERS[k],
-                 v if k == 'SigQ' else signal_bitmask_to_human_readable(v))
+                 v if k == 'SigQ' else signal_bitmask_to_human_readable(v)))
 
 # Support hosts with a modified max PID number.
 def get_max_pid_length():
@@ -166,20 +170,31 @@ def get_max_pid_length():
 def main(args):
     max_pid_length = get_max_pid_length()
 
-    # Single PID, or all PIDs?
-    if args.pid:
+    # Single PID?
+    if args.pid and not args.thread_info:
         try:
             print_signal_info(args, args.pid, max_pid_length)
         except IOError as e:
             if e.errno == 2:
                 sys.exc_clear()
-                print "ERROR: PID %s does not exist" % args.pid
+                error("PID %s does not exist" % args.pid)
+                sys.exit(1)
             else:
                 raise
     else:
+        # All Processes, all Threads, or all Threads of a single Process
         try:
-            for proc_entry in glob.glob('/proc/[0-9]*'):
-                pid = int(proc_entry.split('/')[2])
+            if args.all_pids:
+                glob_pattern = '/proc/[0-9]*'
+            elif args.all_threads:
+                glob_pattern = '/proc/[0-9]*/task/[0-9]*'
+            elif args.thread_info and args.pid:
+                glob_pattern = ('/proc/%d/task/[0-9]*' % args.pid)
+            else:
+                raise "Unexpected arguments specified, cannot proceed."
+
+            for proc_entry in glob.glob(glob_pattern):
+                pid = int(proc_entry.split('/')[-1])
                 print_signal_info(args, pid, max_pid_length)
         except IOError as e:
             if e.errno == errno.ENOENT:
@@ -193,7 +208,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Print human-readable signal info for specified process. By default all signal info is printed.')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-p', '--pid', type=int, help='Process ID')
-    group.add_argument('-a', '--all-pids', action='store_true', help='Print signal info for all Processes + Threads')
+    group.add_argument('-a', '--all-pids', action='store_true', help='Print signal info for all Processes')
+    group.add_argument('-T', '--all-threads', action='store_true', help='Print signal info for all Threads')
+    parser.add_argument('-t', '--thread-info', action='store_true', help='Print signal info for all Threads of the specified PID')
     parser.add_argument('-A', '--all-info', action='store_true', default=True, help='Print all signal info for specified PID(s). Implies -b,-i,-c,-l,-P,-q.')
     parser.add_argument('-b', '--blocked-signals', action='store_true', help='Print human-readable SigBlk from specified PID(s)')
     parser.add_argument('-i', '--ignored-signals', action='store_true', help='Print human-readable SigIgn from specified PID(s)')
@@ -204,5 +221,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if (args.blocked_signals or args.ignored_signals or args.caught_signals or args.pending_signals_for_thread or
         args.pending_signals_for_whole_process or args.signals_queued):
-      vars(args).pop('all_info')
+        vars(args).pop('all_info')
+    if (args.thread_info and not args.pid):
+        error("must specify a PID when using -t / --thread-info")
+        sys.exit(1)
     main(args)

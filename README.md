@@ -15,6 +15,12 @@ chmod +x psig
 # Print signal info for all PIDs
 ./psig -a
 
+# Print signal info for all threads
+./psig -T
+
+# Print signal info for all threads of a given PID:
+./psig -p <PID> -t
+
 # Print blocked signals for a specific PID
 ./psig -p <PID> -b
 
@@ -23,11 +29,8 @@ chmod +x psig
 
 ```
 
-## [Taco Bell Programming](http://widgetsandshit.com/teddziuba/2010/10/taco-bell-programming.html) Examples:
+## [Taco Bell Programming](http://widgetsandshit.com/teddziuba/2010/10/taco-bell-programming.html) Example:
 ```
-# Print caught signals from all threads (subtasks) of a specific PID
-ls -d /proc/<PID>/task/[0-9]* | cut -d/ -f5 | xargs -I{} ./psig -c -p {}
-
 # Print ignored signals from all 'processname' processes (using [] trick to prevent inclusion of grep process)
 ps aux | grep processnam[e] | awk '{print $2}' | xargs -I{} ./psig -s -p {}
 ```
