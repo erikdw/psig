@@ -32,7 +32,7 @@ chmod +x psig
 ## [Taco Bell Programming](http://widgetsandshit.com/teddziuba/2010/10/taco-bell-programming.html) Example:
 ```
 # Print ignored signals from all 'processname' processes (using [] trick to prevent inclusion of grep process)
-ps aux | grep processnam[e] | awk '{print $2}' | xargs -I{} ./psig -s -p {}
+ps aux | grep processnam[e] | awk '{print $2}' | xargs -I{} ./psig -i -p {}
 ```
 
 ## Actual Output Example
