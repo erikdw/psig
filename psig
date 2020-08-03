@@ -173,30 +173,32 @@ def main(args):
 
     # Single PID?
     if args.pid and not args.thread_info:
-        try:
-            print_signal_info(args, args.pid, max_pid_length)
-        except IOError as e:
-            if e.errno == 2:
-                sys.exc_clear()
-                error("PID %s does not exist" % args.pid)
-                sys.exit(1)
-            else:
-                raise
+        for pid in args.pid:
+            try:
+                print_signal_info(args, pid, max_pid_length)
+            except IOError as e:
+                if e.errno == 2:
+                    sys.exc_clear()
+                    error("PID %s does not exist" % pid)
+                    sys.exit(1)
+                else:
+                    raise
     else:
         # All Processes, all Threads, or all Threads of a single Process
         try:
             if args.all_pids:
-                glob_pattern = '/proc/[0-9]*'
+                glob_patterns = ['/proc/[0-9]*']
             elif args.all_threads:
-                glob_pattern = '/proc/[0-9]*/task/[0-9]*'
+                glob_patterns = ['/proc/[0-9]*/task/[0-9]*']
             elif args.thread_info and args.pid:
-                glob_pattern = ('/proc/%d/task/[0-9]*' % args.pid)
+                glob_patterns = ['/proc/' + str(n) + '/task/[0-9]*' for n in args.pid]
             else:
                 raise "Unexpected arguments specified, cannot proceed."
 
-            for proc_entry in glob.glob(glob_pattern):
-                pid = int(proc_entry.split('/')[-1])
-                print_signal_info(args, pid, max_pid_length)
+            for glob_pattern in glob_patterns:
+                for proc_entry in glob.glob(glob_pattern):
+                    pid = int(proc_entry.split('/')[-1])
+                    print_signal_info(args, pid, max_pid_length)
         except IOError as e:
             if e.errno == errno.ENOENT:
                 # Swallow exception for the PID dir not existing, since it's likely
@@ -208,7 +210,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Print human-readable signal info for specified process. By default all signal info is printed.')
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-p', '--pid', type=int, help='Process ID')
+    group.add_argument('-p', '--pid', type=int, help='Process IDs (use `pidof <CMD>` here to get all PIDs for a particular command)', nargs='*')
     group.add_argument('-a', '--all-pids', action='store_true', help='Print signal info for all Processes')
     group.add_argument('-T', '--all-threads', action='store_true', help='Print signal info for all Threads')
     parser.add_argument('-t', '--thread-info', action='store_true', help='Print signal info for all Threads of the specified PID')

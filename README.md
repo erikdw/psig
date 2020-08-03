@@ -9,8 +9,11 @@ chmod +x psig
 
 ## Usage:
 ```
-# Print signal info for a specific PID
-./psig -p <PID>
+# Print signal info for specific PIDs
+./psig -p <PID1> <PID2> ...
+
+# Print signal info for all processes running a particular command
+./psig -p `pidof <CMD>`
 
 # Print signal info for all PIDs
 ./psig -a
