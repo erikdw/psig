@@ -100,12 +100,8 @@ SIGNALS = {
 }
 
 def signal_bitmask_to_human_readable(bitmask_string):
-    signals = []
     bitmask = int(bitmask_string, 16)
-    for signum, signame in SIGNALS.iteritems():
-        if (bitmask & (1 << (signum - 1))) != 0:
-            signals.append(signame)
-    return ','.join(signals)
+    return ",".join([signame for signum, signame in SIGNALS.items() if (bitmask & (1 << (signum - 1)))])
 
 # Return a dict of signal information scraped from the following
 # lines from /proc/<PID>/status:
@@ -154,7 +150,7 @@ OUTPUT_HEADERS = {
 
 def print_signal_info(args, pid, max_pid_length):
     output_fmt = "[%%0%ss] %%s: %%s" % max_pid_length
-    for k,v in obtain_signal_info(pid).iteritems():
+    for k,v in obtain_signal_info(pid).items():
         if option_enabled(args, k):
             print(output_fmt % \
                 (pid,
